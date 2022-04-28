@@ -11,13 +11,14 @@ from dynamic_models.utils import ModelRegistry
 
 class ModelSchema(models.Model):
     name = models.CharField(max_length=32, unique=True)
+    db_name = models.CharField(max_length=32, unique=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._registry = ModelRegistry(self.app_label)
         self._initial_name = self.name
         initial_model = self.get_registered_model()
-        self._schema_editor = ModelSchemaEditor(initial_model)
+        self._schema_editor = ModelSchemaEditor(initial_model, db_name=self.db_name)
 
     def save(self, **kwargs):
         super().save(**kwargs)
@@ -115,6 +116,7 @@ class FieldSchema(models.Model):
     model_schema = models.ForeignKey(ModelSchema, on_delete=models.CASCADE, related_name="fields")
     class_name = models.TextField()
     kwargs = FieldKwargsJSON(default=dict)
+    db_name = models.CharField(max_length=63, null=True)
 
     class Meta:
         unique_together = (("name", "model_schema"),)
@@ -124,7 +126,7 @@ class FieldSchema(models.Model):
         self._initial_name = self.name
         self._initial_null = self.null
         self._initial_field = self.get_registered_model_field()
-        self._schema_editor = FieldSchemaEditor(self._initial_field)
+        self._schema_editor = FieldSchemaEditor(self._initial_field, db_name=self.db_name)
 
     def save(self, **kwargs):
         self.validate()
